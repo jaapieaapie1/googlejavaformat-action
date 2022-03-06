@@ -3,6 +3,7 @@ const exec = require('@actions/exec');
 const glob = require('@actions/glob');
 const github = require('@actions/github');
 const path = require('path');
+const git =  require('simple-git');
 
 const owner = 'google';
 const repo = 'google-java-format';
@@ -158,7 +159,9 @@ async function run() {
             args.push(file);
         }
         await executeGJF(args);
+        core.error("", {
 
+        })
         // Commit changed files if there are any and if skipCommit != true
         if (core.getInput('skipCommit').toLowerCase() !== 'true') {
             await core.group('Committing changes', async () => {
@@ -175,5 +178,14 @@ async function run() {
         core.setFailed(message);
     }
 }
+
+async function readDiff() {
+    let diff = await git.default()
+        .diff();
+
+    console.log(diff);
+}
+
+readDiff();
 
 run()
