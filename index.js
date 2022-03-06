@@ -167,13 +167,12 @@ async function run() {
             changes = true;
             let fileName = obj.from;
 
-            core.group("Suggested changes on " +  fileName);
             obj.chunks.forEach(chunk => {
 
                 let suggestedChanges = chunk.content + "%0A";
                 chunk.changes.forEach(change => {
-                    suggestedChanges += `${change.ln === undefined ? change.ln2 : change.ln}: ${change.content}%0A`;
-                })
+                    suggestedChanges += `${change.ln === undefined ? change.ln2 : change.ln}: ${change.content} %0A `;
+                });
                 core.error(suggestedChanges, {
                     title: "Suggested change",
                     file: fileName,
@@ -181,7 +180,6 @@ async function run() {
                     endLine: chunk.oldLines + chunk.oldStart,
                 });
             })
-            core.endGroup();
         });
 
         if (changes) {
