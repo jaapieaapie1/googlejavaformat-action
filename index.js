@@ -161,14 +161,18 @@ async function run() {
         }
         await executeGJF(args);
 
-        (await readDiff()).forEach(obj => {
-            let fileName = obj.from;
-            obj.chunks.forEach(chunk => {
-                console.log(chunk);
+        let changes = false;
 
-                let suggestedChanges = chunk.content + "\n";
+        (await readDiff()).forEach(obj => {
+            changes = true;
+            let fileName = obj.from;
+
+            core.group("Suggested changes on " +  fileName);
+            obj.chunks.forEach(chunk => {
+
+                let suggestedChanges = chunk.content + "%0A";
                 chunk.changes.forEach(change => {
-                    suggestedChanges += `${change.ln === undefined ? change.ln2 : change.ln}: ${change.content}\n`;
+                    suggestedChanges += `${change.ln === undefined ? change.ln2 : change.ln}: ${change.content}%0A`;
                 })
                 core.error(suggestedChanges, {
                     title: "Suggested change",
@@ -177,7 +181,12 @@ async function run() {
                     endLine: chunk.oldLines + chunk.oldStart,
                 });
             })
+            core.endGroup();
         });
+
+        if (changes) {
+            core.setFailed("There were suggested changes");
+        }
 
         // Commit changed files if there are any and if skipCommit != true
         // if (core.getInput('skipCommit').toLowerCase() !== 'true') {
