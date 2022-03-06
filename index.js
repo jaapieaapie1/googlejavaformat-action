@@ -4,6 +4,7 @@ const glob = require('@actions/glob');
 const github = require('@actions/github');
 const path = require('path');
 const git =  require('simple-git');
+const parseDif = require('parse-diff')
 
 const owner = 'google';
 const repo = 'google-java-format';
@@ -159,21 +160,37 @@ async function run() {
             args.push(file);
         }
         await executeGJF(args);
-        core.error("", {
 
-        })
+        (await readDiff()).forEach(obj => {
+            let fileName = obj.from;
+            obj.chunks.forEach(chunk => {
+                console.log(chunk);
+
+                let suggestedChanges = chunk.content + "\n";
+                chunk.changes.forEach(change => {
+                    suggestedChanges += `${change.ln === undefined ? change.ln2 : change.ln}: ${change.content}\n`;
+                })
+                core.error(suggestedChanges, {
+                    title: "Suggested change",
+                    file: fileName,
+                    startLine: chunk.oldStart,
+                    endLine: chunk.oldLines + chunk.oldStart,
+                });
+            })
+        });
+
         // Commit changed files if there are any and if skipCommit != true
-        if (core.getInput('skipCommit').toLowerCase() !== 'true') {
-            await core.group('Committing changes', async () => {
-                await execute('git config user.name github-actions', { silent: true });
-                await execute("git config user.email ''", { silent: true });
-                const diffIndex = await execute('git diff-index --quiet HEAD', { ignoreReturnCode: true, silent: true });
-                if (diffIndex.exitCode !== 0) {
-                    await execute(`git commit --all -m "${commitMessage ? commitMessage : 'Google Java Format'}"`);
-                    await push();
-                } else core.info('Nothing to commit!')
-            });
-        }
+        // if (core.getInput('skipCommit').toLowerCase() !== 'true') {
+        //     await core.group('Committing changes', async () => {
+        //         await execute('git config user.name github-actions', { silent: true });
+        //         await execute("git config user.email ''", { silent: true });
+        //         const diffIndex = await execute('git diff-index --quiet HEAD', { ignoreReturnCode: true, silent: true });
+        //         if (diffIndex.exitCode !== 0) {
+        //             await execute(`git commit --all -m "${commitMessage ? commitMessage : 'Google Java Format'}"`);
+        //             await push();
+        //         } else core.info('Nothing to commit!')
+        //     });
+        // }
     } catch (message) {
         core.setFailed(message);
     }
@@ -181,11 +198,11 @@ async function run() {
 
 async function readDiff() {
     let diff = await git.default()
-        .diff();
+        .diff(["--patch", "--oneline", "--graph"]);
 
-    console.log(diff);
+    return parseDif(diff);
 }
 
-readDiff();
+
 
 run()

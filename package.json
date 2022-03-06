@@ -25,6 +25,8 @@
     "@actions/glob": "^0.1.0",
     "@types/node": "^13.1.4",
     "diff": "^5.0.0",
+    "parse-diff": "^0.9.0",
+    "parse-git-patch": "^1.0.7",
     "typescript": "^3.7.4"
   },
   "devDependencies": {
